@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tu Dólar Hoy</title>
+  <meta name="description" content="Precios actualizados del dólar y crypto para LATAM. Actualización cada 30 minutos." />
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#06b6d4}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;background:linear-gradient(180deg,#071029 0%, #071827 100%);color:#e6eef6;transition:background 2s ease;}
+    .wrap{max-width:980px;margin:28px auto;padding:18px}
+    header{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+    h1{margin:0;font-size:1.5rem}
+    .card{background:rgba(10,16,22,.65);padding:14px;border-radius:12px;margin-top:14px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.03);font-size:0.95rem}
+    th{color:var(--muted);font-weight:600}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{background:transparent;border:1px solid rgba(255,255,255,.06);padding:8px 10px;border-radius:8px;color:#e6eef6;cursor:pointer}
+    .small{font-size:0.9rem;color:var(--muted)}
+    .ads-placeholder{height:90px;background:linear-gradient(90deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px dashed rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;border-radius:8px;margin-top:12px}
+    .status{margin-top:10px;color:var(--muted);font-size:0.9rem}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),#7dd3fc);color:#042025;border:none}
+    .dynamic-bg{background-size:cover;background-position:center;transition:background-image 1.5s ease-in-out;}
+    .lang-selector{display:flex;gap:6px;}
+    .lang-selector button{padding:4px 8px;border-radius:6px;font-size:0.85rem}
+  </style>
+</head>
+<body class="dynamic-bg">
+  <div class="wrap">
+    <header>
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect rx='8' width='48' height='48' fill='%2306b6d4'/><text x='50%' y='55%' font-size='18' text-anchor='middle' font-family='Arial' fill='white'>$</text></svg>" alt="logo" width="48" height="48">
+        <h1 id="siteTitle">Tu Dólar Hoy</h1>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="lang-selector">
+          <button data-lang="es">ES</button>
+          <button data-lang="en">EN</button>
+          <button data-lang="pt">PT</button>
+        </div>
+        <!-- Placeholder AdSense -->
+        <div id="adsensePlaceholder" class="ads-placeholder">Aquí se mostrará tu anuncio de AdSense</div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <button id="manualBtn" class="btn-primary">Actualizar ahora (ver anuncio)</button>
+        <button id="toggleAuto">Pausar auto-actualización</button>
+        <div class="small" style="margin-left:auto" id="lastUpdateContainer">Última actualización: <span id="lastUpdate">—</span></div>
+      </div>
+
+      <div id="rates" style="margin-top:14px">
+        <div class="grid">
+          <div class="card">
+            <h3 id="fiatTitle" style="margin:0 0 8px 0">Cambio fiat (ej: USD a moneda local)</h3>
+            <table id="fiatTable"><thead><tr><th id="thPais">País</th><th id="thMoneda">Moneda</th><th id="thOficial">Oficial</th><th id="thParalelo">Paralelo</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="card">
+            <h3 id="cryptoTitle" style="margin:0 0 8px 0">Top 30 Criptomonedas</h3>
+            <table id="cryptoTable"><thead><tr><th id="thMonedaCrypto">Moneda</th><th id="thPrecio">Precio (USD)</th><th id="th24h">24h %</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="status" id="status">Estado: esperando primera carga...</div>
+    </div>
+
+    <footer style="margin-top:18px;color:var(--muted);font-size:0.85rem" id="footerText">
+      Consejo: para que AdSense funcione correctamente necesitarás añadir el archivo <code>ads.txt</code> en la raíz del dominio con tu publisher ID.
+    </footer>
+  </div>
+
+  <script>
+    const AUTO_REFRESH_MS = 30 * 60 * 1000;
+    const BACKGROUND_INTERVAL_MS = 20000;
+
+    const translations = {
+      es: {siteTitle:'Tu Dólar Hoy', manual:'Actualizar ahora (ver anuncio)', toggle:'Pausar auto-actualización', lastUpdate:'Última actualización', fiatTitle:'Cambio fiat (ej: USD a moneda local)', thPais:'País', thMoneda:'Moneda', thOficial:'Oficial', thParalelo:'Paralelo', cryptoTitle:'Top 30 Criptomonedas', thMonedaCrypto:'Moneda', thPrecio:'Precio (USD)', th24h:'24h %', footer:'Consejo: para que AdSense funcione correctamente necesitarás añadir el archivo ads.txt en la raíz del dominio con tu publisher ID.'},
+      en: {siteTitle:'Your Dollar Today', manual:'Update Now (view ad)', toggle:'Pause Auto-Update', lastUpdate:'Last update', fiatTitle:'Fiat exchange (e.g., USD to local)', thPais:'Country', thMoneda:'Currency', thOficial:'Official', thParalelo:'Parallel', cryptoTitle:'Top 30 Cryptocurrencies', thMonedaCrypto:'Currency', thPrecio:'Price (USD)', th24h:'24h %', footer:'Tip: to use AdSense correctly, add the ads.txt file in the root of the domain with your publisher ID.'},
+      pt: {siteTitle:'Seu Dólar Hoje', manual:'Atualizar agora (ver anúncio)', toggle:'Pausar autoatualização', lastUpdate:'Última atualização', fiatTitle:'Câmbio fiat (ex: USD para local)', thPais:'País', thMoneda:'Moeda', thOficial:'Oficial', thParalelo:'Paralelo', cryptoTitle:'Top 30 Criptomoedas', thMonedaCrypto:'Moeda', thPrecio:'Preço (USD)', th24h:'24h %', footer:'Dica: para usar o AdSense corretamente, adicione o arquivo ads.txt na raiz do domínio com seu ID de publicador.'}
+    };
+
+    function setLanguage(lang){
+      const t = translations[lang];
+      document.getElementById('siteTitle').textContent = t.siteTitle;
+      document.getElementById('manualBtn').textContent = t.manual;
+      document.getElementById('toggleAuto').textContent = t.toggle;
+      document.querySelector('#lastUpdateContainer').childNodes[0].textContent = t.lastUpdate+': ';
+      document.getElementById('fiatTitle').textContent = t.fiatTitle;
+      document.getElementById('thPais').textContent = t.thPais;
+      document.getElementById('thMoneda').textContent = t.thMoneda;
+      document.getElementById('thOficial').textContent = t.thOficial;
+      document.getElementById('thParalelo').textContent = t.thParalelo;
+      document.getElementById('cryptoTitle').textContent = t.cryptoTitle;
+      document.getElementById('thMonedaCrypto').textContent = t.thMonedaCrypto;
+      document.getElementById('thPrecio').textContent = t.thPrecio;
+      document.getElementById('th24h').textContent = t.th24h;
+      document.getElementById('footerText').textContent = t.footer;
+    }
+
+    document.querySelectorAll('.lang-selector button').forEach(btn=>{
+      btn.addEventListener('click',()=>setLanguage(btn.dataset.lang));
+    });
+    setLanguage('es');
+
+    // Fondo dinámico
+    const backgrounds = [
+      'https://upload.wikimedia.org/wikipedia/commons/6/6f/Binance_Logo.png',
+      'https://upload.wikimedia.org/wikipedia/commons/2/2f/Airtm_logo.png',
+      'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg'
+    ];
+    let bgIndex = 0;
+    function changeBackground(){
+      document.body.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
+      bgIndex = (bgIndex + 1) % backgrounds.length;
+    }
+    changeBackground();
+    setInterval(changeBackground, BACKGROUND_INTERVAL_MS);
+
+    // TODO: Integrar la lógica de actualización de precios (API) y anuncios según tu código previo
+  </script>
+</body>
+</html>
